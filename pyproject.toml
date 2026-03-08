@@ -1,5 +1,5 @@
 [project]
-name = "tipster-python"
+name = "tipster"
 version = "0.1.0"
 description = "AI-powered CLI tip generator for topics you care about"
 readme = "README.md"
