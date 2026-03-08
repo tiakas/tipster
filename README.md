@@ -233,24 +233,35 @@ Config and tips are stored in `~/.tipster/`:
 ### Project Structure
 
 ```
-tipster_python/
+tipster/
+├── .github/
+│   └── workflows/       # GitHub Actions
 ├── tipster/
 │   ├── __main__.py      # CLI entry point
 │   ├── cmd/             # CLI commands
-│   │   └── __init__.py
+│   │   ├── __init__.py
+│   │   ├── tips.py
+│   │   ├── fav.py
+│   │   ├── topics.py
+│   │   ├── config_cmd.py
+│   │   ├── export.py
+│   │   ├── import_cmd.py
+│   │   ├── search.py
+│   │   └── version.py
 │   ├── ai/              # AI providers
 │   │   ├── __init__.py
+│   │   ├── core.py
 │   │   ├── openai.py
 │   │   ├── anthropic.py
 │   │   ├── gemini.py
 │   │   ├── deepseek.py
 │   │   ├── glm.py
 │   │   └── ollama.py
-│   ├── config/          # Configuration
-│   │   └── __init__.py
-│   └── storage/         # Data storage
-│       └── __init__.py
-└── pyproject.toml
+│   ├── config.py        # Configuration
+│   └── storage.py       # Data storage
+├── tests/               # Test suite
+├── pyproject.toml
+└── README.md
 ```
 
 ### Adding a New AI Provider
@@ -291,84 +302,48 @@ uv run pytest --cov=tipster
 
 ## Publishing to PyPI
 
+This project uses [trusted publishing](https://docs.pypi.org/trusted-publishers/) - no credentials need to be configured.
+
 ### Prerequisites
 
 1. **PyPI Account**: Create an account at [PyPI](https://pypi.org)
-2. **Test PyPI Account**: Create an account at [Test PyPI](https://test.pypi.org) (recommended for testing)
-3. **API Token**: Generate API tokens at:
-   - [PyPI API Tokens](https://pypi.org/manage/account/token/)
-   - [Test PyPI API Tokens](https://test.pypi.org/manage/account/token/)
+2. **Trusted Publisher**: Configure in PyPI project settings (see below)
 
-### Setup PyPI Credentials
+### Setup Trusted Publishing
 
-Create `~/.pypirc` file:
+1. Create an environment named `pypi` in your GitHub repository under "Settings" -> "Environments"
 
-```ini
-[distutils]
-index-servers =
-    pypi
-    testpypi
+2. Add a [trusted publisher](https://docs.pypi.org/trusted-publishers/adding-a-publisher/) to your PyPI project:
+   - Go to your project on PyPI -> "Publishing" settings
+   - Add a new trusted publisher
+   - Select your GitHub repository
+   - Environment name: `pypi`
+   - Workflow name: `publish.yml`
+   - Branch: `main`
 
-[pypi]
-username = __token__
-password = <your-pypi-token>
-
-[testpypi]
-username = __token__
-password = <your-test-pypi-token>
-```
-
-### Build the Package
+### Build and Publish
 
 ```bash
-# Clean previous builds
-rm -rf dist/
-
 # Build the package
 uv build
 
-# This creates:
-# dist/tipster_python-0.1.0-py3-none-any.whl
-# dist/tipster_python-0.1.0.tar.gz
+# Publish to PyPI (when triggering from CI)
+uv publish
 ```
 
-### Test on Test PyPI (Recommended)
+### Using GitHub Actions
+
+The `.github/workflows/publish.yml` workflow publishes automatically when you push a tag:
 
 ```bash
-# Upload to Test PyPI
-uv publish -r testpypi
-
-# Or using twine
-twine upload -r testpypi dist/*
+# Create and push a version tag
+git tag -a v0.1.0 -m "Release v0.1.0"
+git push --tags
 ```
 
-### Install from Test PyPI to Verify
-
-```bash
-# Create a virtual environment
-python -m venv test_env
-source test_env/bin/activate
-
-# Install from Test PyPI
-pip install --index-url https://test.pypi.org/simple/ tipster-python
-
-# Test the package
-tipster --help
-
-# Cleanup
-deactivate
-rm -rf test_env
-```
-
-### Publish to PyPI
-
-```bash
-# Upload to PyPI
-uv publish -r pypi
-
-# Or using twine
-twine upload dist/*
-```
+This will:
+1. Build the package
+2. Publish to PyPI using trusted publishing
 
 ### Version Bumping
 
@@ -378,53 +353,18 @@ Update version in `pyproject.toml` before each release:
 version = "0.1.0"  # bump to 0.2.0, etc.
 ```
 
-Then rebuild and publish:
+Then create a new tag and push:
 
 ```bash
-uv build
-twine upload dist/*
-```
-
-### Using GitHub Actions (Optional)
-
-Create `.github/workflows/publish.yml`:
-
-```yaml
-name: Publish to PyPI
-
-on:
-  release:
-    types: [published]
-
-jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Build package
-        run: uv build
-
-      - name: Publish to PyPI
-        run: uv publish -r pypi
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+git tag -a v0.2.0 -m "Release v0.2.0"
+git push --tags
 ```
 
 ### Checklist Before Publishing
 
 - [ ] Update version in `pyproject.toml`
 - [ ] Update README with any new features
-- [ ] Test on Test PyPI first
-- [ ] Verify package installs correctly
+- [ ] Verify tests pass
 - [ ] Check package metadata on PyPI page
 
 ## License
