@@ -12,7 +12,7 @@ def _get_version() -> str:
     try:
         return pkg_version("tipster")
     except Exception:
-        return "0.1.0"
+        return "0.2.0"
 
 
 @click.command()

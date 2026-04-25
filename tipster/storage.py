@@ -66,6 +66,13 @@ class TipsData:
 
 
 _cache: Optional[TipsData] = None
+_cached_path: Optional[Path] = None
+
+
+def clear_cache() -> None:
+    global _cache, _cached_path
+    _cache = None
+    _cached_path = None
 
 
 def get_tips_path() -> Path:
@@ -75,11 +82,16 @@ def get_tips_path() -> Path:
 
 
 def load() -> TipsData:
-    global _cache
+    global _cache, _cached_path
+    tips_path = get_tips_path()
+
+    if _cached_path is not None and _cached_path != tips_path:
+        _cache = None
+
     if _cache is not None:
         return _cache
 
-    tips_path = get_tips_path()
+    _cached_path = tips_path
     if not tips_path.exists():
         return TipsData()
 
