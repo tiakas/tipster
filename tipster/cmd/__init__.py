@@ -1,4 +1,5 @@
 import click
+from importlib.metadata import version as pkg_version
 
 from tipster.cmd_output import (  # noqa: F401
     print_tip,
@@ -11,8 +12,15 @@ from tipster.cmd_output import (  # noqa: F401
 )
 
 
+def _get_version() -> str:
+    try:
+        return pkg_version("tipster")
+    except Exception:
+        return "0.2.0"
+
+
 @click.group()
-@click.version_option(version="0.1.0")
+@click.version_option(version=_get_version())
 def cli():
     """AI-powered CLI tip generator"""
     pass

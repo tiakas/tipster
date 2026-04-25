@@ -8,6 +8,10 @@ class TestStorage:
     @pytest.fixture(autouse=True)
     def setup_temp_storage(self, monkeypatch, tmp_path):
         """Setup temporary storage for each test"""
+        from tipster import storage as storage_module
+
+        storage_module.clear_cache()
+
         storage_file = tmp_path / "tips.json"
         monkeypatch.setattr("tipster.storage.get_tips_path", lambda: storage_file)
 

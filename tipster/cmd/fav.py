@@ -18,10 +18,23 @@ def fav():
 @click.argument("tip_id")
 def fav_add(tip_id):
     """Add a tip to favorites"""
-    tip = storage.toggle_favorite(tip_id)
-    if not tip:
+    tips_data = storage.load()
+
+    found = False
+    for tip in tips_data.tips:
+        if tip.id.startswith(tip_id):
+            if tip.favorited:
+                print_success("Already in favorites")
+                return
+            tip.favorited = True
+            found = True
+            break
+
+    if not found:
         print_error(f"tip not found: {tip_id}")
         return
+
+    storage.save(tips_data)
     print_success("Added to favorites")
 
 

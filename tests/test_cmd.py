@@ -20,6 +20,10 @@ def setup_temp_config(monkeypatch, tmp_path):
 
 @pytest.fixture(autouse=True)
 def setup_temp_storage(monkeypatch, tmp_path):
+    from tipster import storage as storage_module
+
+    storage_module.clear_cache()
+
     storage_file = tmp_path / "tips.json"
     monkeypatch.setattr("tipster.storage.get_tips_path", lambda: storage_file)
     storage_file.write_text(json.dumps({"tips": []}))
@@ -35,7 +39,7 @@ class TestCLI:
     def test_cli_version(self, runner):
         result = runner.invoke(cli, ["--version"])
         assert result.exit_code == 0
-        assert "0.1.0" in result.output
+        assert "0.2.0" in result.output
 
 
 class TestTipsCommands:
@@ -98,7 +102,7 @@ class TestTopicsCommands:
         assert result.exit_code == 0
 
     def test_topics_delete_not_found(self, runner):
-        result = runner.invoke(cli, ["topics", "delete", "nonexistent"])
+        result = runner.invoke(cli, ["topics", "delete", "--yes", "nonexistent"])
         assert result.exit_code == 0
 
 
@@ -153,4 +157,4 @@ class TestVersionCommand:
     def test_version(self, runner):
         result = runner.invoke(cli, ["version"])
         assert result.exit_code == 0
-        assert "0.1.0" in result.output
+        assert "0.2.0" in result.output

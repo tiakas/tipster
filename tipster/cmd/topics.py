@@ -60,21 +60,28 @@ def topics_new(topic):
 @topics.command(name="list")
 def topics_list():
     """List all topics"""
+    from collections import Counter
+
     cfg = config.load()
-    tips_topics = storage.get_all_topics()
+    tips_data = storage.load()
+
+    counts = Counter(tip.topic for tip in tips_data.tips)
+    tips_topics = list(counts.keys())
 
     all_topics = sorted(set(cfg.topics + tips_topics))
 
-    topics_data = [
-        (topic, len(storage.get_tips_by_topic(topic))) for topic in all_topics
-    ]
-    print_topics(topics_data)
+    topics_list = [(topic, counts.get(topic, 0)) for topic in all_topics]
+    print_topics(topics_list)
 
 
 @topics.command(name="delete")
 @click.argument("topic")
-def topics_delete(topic):
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation")
+def topics_delete(topic, yes):
     """Remove a topic and all its tips"""
+    if not yes and not click.confirm(f"Delete topic '{topic}' and all its tips?"):
+        return
+
     try:
         storage.remove_topic(topic)
     except Exception as e:

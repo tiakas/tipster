@@ -65,6 +65,16 @@ class TipsData:
         return td
 
 
+_cache: Optional[TipsData] = None
+_cached_path: Optional[Path] = None
+
+
+def clear_cache() -> None:
+    global _cache, _cached_path
+    _cache = None
+    _cached_path = None
+
+
 def get_tips_path() -> Path:
     home = os.path.expanduser("~")
     config_dir = Path(home) / ".tipster"
@@ -72,22 +82,34 @@ def get_tips_path() -> Path:
 
 
 def load() -> TipsData:
+    global _cache, _cached_path
     tips_path = get_tips_path()
+
+    if _cached_path is not None and _cached_path != tips_path:
+        _cache = None
+
+    if _cache is not None:
+        return _cache
+
+    _cached_path = tips_path
     if not tips_path.exists():
         return TipsData()
 
     with open(tips_path, "r") as f:
         data = json.load(f)
-    return TipsData.from_dict(data)
+    _cache = TipsData.from_dict(data)
+    return _cache
 
 
 def save(data: TipsData) -> None:
+    global _cache
     config_dir = get_tips_path().parent
     config_dir.mkdir(parents=True, exist_ok=True)
 
     tips_path = get_tips_path()
     with open(tips_path, "w") as f:
         json.dump(data.to_dict(), f, indent=2)
+    _cache = data
 
 
 def add_tip(topic: str, content: str, examples: list[str], labels: list[str]) -> Tip:
@@ -119,9 +141,9 @@ def remove_topic(topic: str) -> None:
 
 def get_tip_by_id(tip_id: str) -> Optional[Tip]:
     tips_data = load()
-    for tip in tips_data.tips:
-        if tip.id.startswith(tip_id):
-            return tip
+    matches = [tip for tip in tips_data.tips if tip.id.startswith(tip_id)]
+    if len(matches) == 1:
+        return matches[0]
     return None
 
 
@@ -167,4 +189,9 @@ def export() -> TipsData:
 
 
 def import_tips(data: TipsData) -> None:
-    save(data)
+    existing = load()
+    existing_ids = {tip.id for tip in existing.tips}
+    for tip in data.tips:
+        if tip.id not in existing_ids:
+            existing.tips.append(tip)
+    save(existing)

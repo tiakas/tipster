@@ -75,25 +75,29 @@ def tips_show(tip_id):
 
 @tips.command(name="delete")
 @click.argument("tip_id")
-def tips_delete(tip_id):
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation")
+def tips_delete(tip_id, yes):
     """Delete a tip by ID"""
     tips_data = storage.load()
 
-    found = False
-    new_tips = []
-    for tip in tips_data.tips:
-        if tip.id.startswith(tip_id):
-            found = True
-            continue
-        new_tips.append(tip)
+    matches = [tip for tip in tips_data.tips if tip.id.startswith(tip_id)]
 
-    if not found:
+    if not matches:
         print_error(f"tip not found: {tip_id}")
+        return
+
+    if len(matches) > 1:
+        print_error(
+            f"ambiguous ID prefix '{tip_id}' matches {len(matches)} tips. Use a longer prefix"
+        )
         return
 
     display_id = tip_id[:8] if len(tip_id) > 8 else tip_id
 
-    tips_data.tips = new_tips
+    if not yes and not click.confirm(f"Delete tip {display_id}?"):
+        return
+
+    tips_data.tips = [tip for tip in tips_data.tips if not tip.id.startswith(tip_id)]
     try:
         storage.save(tips_data)
     except Exception as e:
