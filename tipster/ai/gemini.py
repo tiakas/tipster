@@ -13,19 +13,24 @@ class GeminiClient(Client):
     def __init__(self, api_key: str, model: str):
         self.api_key = api_key
         self.model = model or "gemini-1.5-pro"
+        self.session = requests.Session()
 
     def generate_tip(self, topic: str) -> TipResponse:
         prompt = build_prompt(topic)
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
+
+        headers = {
+            "x-goog-api-key": self.api_key,
+        }
 
         body = {
             "contents": [{"parts": [{"text": prompt}]}],
         }
 
-        response = requests.post(url, json=body)
+        response = self.session.post(url, headers=headers, json=body, timeout=(5, 30))
         if response.status_code != 200:
-            raise Exception(f"Gemini API error: {response.text}")
+            raise Exception(f"Gemini API error: status {response.status_code}")
 
         data = response.json()
         candidates = data.get("candidates", [])

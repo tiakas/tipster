@@ -13,6 +13,7 @@ class AnthropicClient(Client):
     def __init__(self, api_key: str, model: str):
         self.api_key = api_key
         self.model = model or "claude-3-5-sonnet-20241022"
+        self.session = requests.Session()
 
     def generate_tip(self, topic: str) -> TipResponse:
         prompt = build_prompt(topic)
@@ -29,9 +30,9 @@ class AnthropicClient(Client):
             "messages": [{"role": "user", "content": prompt}],
         }
 
-        response = requests.post(url, json=body, headers=headers)
+        response = self.session.post(url, json=body, headers=headers, timeout=(5, 30))
         if response.status_code != 200:
-            raise Exception(f"Anthropic API error: {response.text}")
+            raise Exception(f"Anthropic API error: status {response.status_code}")
 
         data = response.json()
         content = data["content"]

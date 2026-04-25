@@ -15,7 +15,7 @@ from tipster.cmd_output import (
     help="Set AI provider (openai, anthropic, gemini, deepseek, glm, ollama)",
 )
 @click.option("--model", "-m", help="Set AI model")
-@click.option("--apikey", "-k", help="Set API key")
+@click.option("--apikey", "-k", is_flag=True, help="Set API key (interactive prompt)")
 @click.option("--show", "-s", is_flag=True, help="Show current configuration")
 def config_cmd(provider, model, apikey, show):
     """Configuration settings"""
@@ -41,7 +41,8 @@ def config_cmd(provider, model, apikey, show):
         changed = True
 
     if apikey:
-        cfg.api_key = apikey
+        key = click.prompt("API key", hide_input=True)
+        cfg.api_key = key
         changed = True
 
     if changed:

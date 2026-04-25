@@ -2,6 +2,7 @@ import click
 import json
 import csv
 import io
+import os
 
 from tipster import storage
 from tipster.cmd_output import (
@@ -59,8 +60,12 @@ def export_cmd(format, output):
             content = output_buf.getvalue()
 
     if output:
-        with open(output, "w") as f:
+        output_path = os.path.realpath(output)
+        if os.path.isdir(output_path):
+            print_error("output path is a directory")
+            return
+        with open(output_path, "w") as f:
             f.write(content)
-        print_success(f"Exported {len(tips_data)} tips to {output}")
+        print_success(f"Exported {len(tips_data)} tips to {output_path}")
     else:
         console.print(content)

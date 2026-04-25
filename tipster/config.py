@@ -1,5 +1,6 @@
 import json
 import os
+import stat
 from pathlib import Path
 
 
@@ -60,6 +61,7 @@ def save(cfg: Config) -> None:
     config_path = get_config_path()
     with open(config_path, "w") as f:
         json.dump(cfg.to_dict(), f, indent=2)
+    config_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
 
 
 def get_api_key(provider: str) -> str:
