@@ -6,13 +6,14 @@ from . import (
     parse_response,
     extract_json,
     register_provider,
+    api_error_message,
 )
 
 
 class AnthropicClient(Client):
     def __init__(self, api_key: str, model: str):
         self.api_key = api_key
-        self.model = model or "claude-3-5-sonnet-20241022"
+        self.model = model or "claude-sonnet-4-6"
         self.session = requests.Session()
 
     def generate_tip(self, topic: str) -> TipResponse:
@@ -32,7 +33,7 @@ class AnthropicClient(Client):
 
         response = self.session.post(url, json=body, headers=headers, timeout=(5, 30))
         if response.status_code != 200:
-            raise Exception(f"Anthropic API error: status {response.status_code}")
+            raise Exception(api_error_message("Anthropic", response.status_code))
 
         data = response.json()
         content = data["content"]

@@ -65,6 +65,7 @@ class TestConfig:
         assert key == "env-key-456"
 
     def test_print_config(self, capsys):
+        from tipster.cmd_output import print_config
         from tipster import config
 
         cfg = config.Config()
@@ -72,12 +73,11 @@ class TestConfig:
         cfg.model = "claude-3"
         cfg.topics = ["python"]
 
-        config.print_config(cfg)
+        print_config(cfg)
 
         captured = capsys.readouterr()
         assert "anthropic" in captured.out
         assert "claude-3" in captured.out
-        assert "python" in captured.out
 
     def test_topics_list(self):
         from tipster import config

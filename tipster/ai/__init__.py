@@ -8,6 +8,9 @@ from tipster.ai.core import (
     build_prompt,
     parse_response,
     extract_json,
+    generate_with_retry,
+    validate_topic,
+    api_error_message,
 )
 
 from tipster.ai import (
@@ -29,6 +32,9 @@ __all__ = [
     "build_prompt",
     "parse_response",
     "extract_json",
+    "generate_with_retry",
+    "validate_topic",
+    "api_error_message",
     "openai",
     "anthropic",
     "gemini",

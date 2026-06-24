@@ -6,6 +6,7 @@ from . import (
     parse_response,
     extract_json,
     register_provider,
+    api_error_message,
 )
 
 
@@ -26,11 +27,12 @@ class DeepSeekClient(Client):
         body = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
+            "response_format": {"type": "json_object"},
         }
 
         response = self.session.post(url, json=body, headers=headers, timeout=(5, 30))
         if response.status_code != 200:
-            raise Exception(f"DeepSeek API error: status {response.status_code}")
+            raise Exception(api_error_message("DeepSeek", response.status_code))
 
         data = response.json()
         choices = data.get("choices", [])

@@ -6,7 +6,7 @@ from . import Client, TipResponse, build_prompt, parse_response, register_provid
 class OpenAIClient(Client):
     def __init__(self, api_key: str, model: str):
         self.api_key = api_key
-        self.model = model or "gpt-4"
+        self.model = model or "gpt-4o"
         self.client = OpenAI(api_key=self.api_key)
 
     def generate_tip(self, topic: str) -> TipResponse:
@@ -15,9 +15,12 @@ class OpenAIClient(Client):
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
         )
 
         content = response.choices[0].message.content
+        if not content:
+            raise Exception("No response from OpenAI")
         return parse_response(content)
 
 

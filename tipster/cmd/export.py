@@ -54,8 +54,8 @@ def export_cmd(format, output):
             writer.writeheader()
             for tip in tips_data:
                 tip_copy = tip.copy()
-                tip_copy["examples"] = "|".join(tip_copy.get("examples", []))
-                tip_copy["labels"] = "|".join(tip_copy.get("labels", []))
+                tip_copy["examples"] = "|".join(tip_copy.get("examples") or [])
+                tip_copy["labels"] = "|".join(tip_copy.get("labels") or [])
                 writer.writerow(tip_copy)
             content = output_buf.getvalue()
 

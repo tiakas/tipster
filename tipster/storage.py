@@ -1,5 +1,7 @@
 import json
 import os
+import tempfile
+import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -67,12 +69,14 @@ class TipsData:
 
 _cache: Optional[TipsData] = None
 _cached_path: Optional[Path] = None
+_cache_lock = threading.Lock()
 
 
 def clear_cache() -> None:
     global _cache, _cached_path
-    _cache = None
-    _cached_path = None
+    with _cache_lock:
+        _cache = None
+        _cached_path = None
 
 
 def get_tips_path() -> Path:
@@ -85,20 +89,21 @@ def load() -> TipsData:
     global _cache, _cached_path
     tips_path = get_tips_path()
 
-    if _cached_path is not None and _cached_path != tips_path:
-        _cache = None
+    with _cache_lock:
+        if _cached_path is not None and _cached_path != tips_path:
+            _cache = None
 
-    if _cache is not None:
+        if _cache is not None:
+            return _cache
+
+        _cached_path = tips_path
+        if not tips_path.exists():
+            return TipsData()
+
+        with open(tips_path, "r") as f:
+            data = json.load(f)
+        _cache = TipsData.from_dict(data)
         return _cache
-
-    _cached_path = tips_path
-    if not tips_path.exists():
-        return TipsData()
-
-    with open(tips_path, "r") as f:
-        data = json.load(f)
-    _cache = TipsData.from_dict(data)
-    return _cache
 
 
 def save(data: TipsData) -> None:
@@ -107,9 +112,19 @@ def save(data: TipsData) -> None:
     config_dir.mkdir(parents=True, exist_ok=True)
 
     tips_path = get_tips_path()
-    with open(tips_path, "w") as f:
-        json.dump(data.to_dict(), f, indent=2)
-    _cache = data
+    fd, tmp_path = tempfile.mkstemp(dir=config_dir, prefix=".tips-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(data.to_dict(), f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, tips_path)
+    except BaseException:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise
+    with _cache_lock:
+        _cache = data
 
 
 def add_tip(topic: str, content: str, examples: list[str], labels: list[str]) -> Tip:
@@ -139,21 +154,15 @@ def remove_topic(topic: str) -> None:
     save(tips_data)
 
 
-def get_tip_by_id(tip_id: str) -> Optional[Tip]:
+def find_tips_by_prefix(tip_id: str) -> list[Tip]:
     tips_data = load()
-    matches = [tip for tip in tips_data.tips if tip.id.startswith(tip_id)]
+    return [tip for tip in tips_data.tips if tip.id.startswith(tip_id)]
+
+
+def get_tip_by_id(tip_id: str) -> Optional[Tip]:
+    matches = find_tips_by_prefix(tip_id)
     if len(matches) == 1:
         return matches[0]
-    return None
-
-
-def toggle_favorite(tip_id: str) -> Optional[Tip]:
-    tips_data = load()
-    for tip in tips_data.tips:
-        if tip.id.startswith(tip_id):
-            tip.favorited = not tip.favorited
-            save(tips_data)
-            return tip
     return None
 
 

@@ -1,4 +1,5 @@
 import click
+import requests
 
 from tipster import config, storage, ai
 from tipster.cmd_output import (
@@ -36,7 +37,16 @@ def topics_new(topic):
     console.print(f"[bold]Generating tip for '{topic}'...[/bold]")
 
     try:
-        response = client.generate_tip(topic)
+        response = ai.generate_with_retry(client, topic)
+    except ValueError as e:
+        print_error(f"invalid topic: {e}")
+        return
+    except requests.exceptions.Timeout:
+        print_error("request timed out")
+        return
+    except requests.exceptions.ConnectionError:
+        print_error("network error - check your connection")
+        return
     except Exception as e:
         print_error(f"failed to generate tip: {e}")
         return
