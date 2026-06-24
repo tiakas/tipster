@@ -110,7 +110,7 @@ class TestAIClients:
 
         client = OpenAIClient("test-key", "")
 
-        assert client.model == "gpt-4"
+        assert client.model == "gpt-4o"
 
     def test_openai_client_custom_model(self):
         from tipster.ai.openai import OpenAIClient
@@ -124,7 +124,7 @@ class TestAIClients:
 
         client = AnthropicClient("test-key", "")
 
-        assert client.model == "claude-3-5-sonnet-20241022"
+        assert client.model == "claude-sonnet-4-6"
 
     def test_anthropic_client_custom_model(self):
         from tipster.ai.anthropic import AnthropicClient
@@ -138,7 +138,7 @@ class TestAIClients:
 
         client = GeminiClient("test-key", "")
 
-        assert client.model == "gemini-1.5-pro"
+        assert client.model == "gemini-2.0-flash"
 
     def test_deepseek_client_default_model(self):
         from tipster.ai.deepseek import DeepSeekClient
@@ -159,5 +159,5 @@ class TestAIClients:
 
         client = OllamaClient("", "")
 
-        assert client.model == "llama2"
+        assert client.model == "llama3.2"
         assert client.base_url == "http://localhost:11434"

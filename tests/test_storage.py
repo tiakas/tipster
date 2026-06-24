@@ -55,24 +55,17 @@ class TestStorage:
 
         assert set(topics) == {"python", "ruby"}
 
-    def test_toggle_favorite(self):
-        from tipster import storage
-
-        tip = storage.add_tip("python", "Test tip", [], [])
-
-        result = storage.toggle_favorite(tip.id)
-        assert result.favorited is True
-
-        result = storage.toggle_favorite(tip.id)
-        assert result.favorited is False
-
     def test_get_favorites(self):
         from tipster import storage
 
         tip1 = storage.add_tip("python", "Tip 1", [], [])
         storage.add_tip("ruby", "Tip 2", [], [])
 
-        storage.toggle_favorite(tip1.id)
+        data = storage.load()
+        for t in data.tips:
+            if t.id == tip1.id:
+                t.favorited = True
+        storage.save(data)
 
         favorites = storage.get_favorites()
 

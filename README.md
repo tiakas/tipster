@@ -183,12 +183,12 @@ tipster tips new
 ### Set Provider
 
 ```bash
-tipster config -p openai      # OpenAI (default model: gpt-4)
-tipster config -p anthropic  # Anthropic (default model: claude-3-5-sonnet-20241022)
-tipster config -p gemini     # Gemini (default model: gemini-1.5-pro)
+tipster config -p openai      # OpenAI (default model: gpt-4o)
+tipster config -p anthropic  # Anthropic (default model: claude-sonnet-4-6)
+tipster config -p gemini     # Gemini (default model: gemini-2.0-flash)
 tipster config -p deepseek   # DeepSeek (default model: deepseek-chat)
 tipster config -p glm       # GLM (default model: glm-4)
-tipster config -p ollama    # Ollama (local, default model: llama2)
+tipster config -p ollama    # Ollama (local, default model: llama3.2)
 ```
 
 ### Set Model

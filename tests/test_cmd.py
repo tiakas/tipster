@@ -96,6 +96,148 @@ class TestFavCommands:
         assert result.exit_code == 0
 
 
+def _seed_two_ambiguous(tmp_path):
+    from tipster import storage as storage_module
+
+    tips = [
+        {
+            "id": "ab1111",
+            "topic": "python",
+            "content": "first",
+            "examples": [],
+            "labels": [],
+            "favorited": False,
+            "created_at": "2024-01-01",
+        },
+        {
+            "id": "ab2222",
+            "topic": "python",
+            "content": "second",
+            "examples": [],
+            "labels": [],
+            "favorited": False,
+            "created_at": "2024-01-01",
+        },
+    ]
+    (tmp_path / "tips.json").write_text(json.dumps({"tips": tips}))
+    storage_module.clear_cache()
+
+
+def _seed_labeled(tmp_path):
+    from tipster import storage as storage_module
+
+    tips = [
+        {
+            "id": "s1",
+            "topic": "python",
+            "content": "sec tip",
+            "examples": [],
+            "labels": ["security"],
+            "favorited": False,
+            "created_at": "2024-01-01",
+        },
+        {
+            "id": "p1",
+            "topic": "python",
+            "content": "perf tip",
+            "examples": [],
+            "labels": ["performance"],
+            "favorited": False,
+            "created_at": "2024-01-02",
+        },
+        {
+            "id": "p2",
+            "topic": "ruby",
+            "content": "another perf",
+            "examples": [],
+            "labels": ["performance"],
+            "favorited": False,
+            "created_at": "2024-01-03",
+        },
+    ]
+    (tmp_path / "tips.json").write_text(json.dumps({"tips": tips}))
+    storage_module.clear_cache()
+
+
+class TestTipsListFilters:
+    def test_list_label_filter(self, runner, tmp_path):
+        _seed_labeled(tmp_path)
+        result = runner.invoke(cli, ["tips", "list", "--label", "security"])
+        assert result.exit_code == 0
+        assert "sec tip" in result.output
+        assert "perf tip" not in result.output
+
+    def test_list_limit(self, runner, tmp_path):
+        _seed_labeled(tmp_path)
+        result = runner.invoke(cli, ["tips", "list", "--limit", "1"])
+        assert result.exit_code == 0
+        assert "of 3" in result.output
+
+    def test_random_empty(self, runner):
+        result = runner.invoke(cli, ["tips", "random"])
+        assert result.exit_code == 0
+        assert "no tips found" in result.output
+
+    def test_random_returns_tip(self, runner, tmp_path):
+        _seed_labeled(tmp_path)
+        result = runner.invoke(cli, ["tips", "random", "ruby"])
+        assert result.exit_code == 0
+        assert "another perf" in result.output
+
+
+class TestAmbiguity:
+    def test_tips_show_ambiguous(self, runner, tmp_path):
+        _seed_two_ambiguous(tmp_path)
+        result = runner.invoke(cli, ["tips", "show", "ab"])
+        assert result.exit_code == 0
+        assert "ambiguous" in result.output
+
+    def test_fav_add_ambiguous(self, runner, tmp_path):
+        _seed_two_ambiguous(tmp_path)
+        result = runner.invoke(cli, ["fav", "add", "ab"])
+        assert result.exit_code == 0
+        assert "ambiguous" in result.output
+
+    def test_fav_remove_ambiguous(self, runner, tmp_path):
+        _seed_two_ambiguous(tmp_path)
+        result = runner.invoke(cli, ["fav", "remove", "ab"])
+        assert result.exit_code == 0
+        assert "ambiguous" in result.output
+
+
+class TestToday:
+    def test_today_serves_cached_tip(self, runner, tmp_path):
+        from datetime import datetime, timezone
+        from tipster import storage as storage_module
+
+        today_str = datetime.now(timezone.utc).date().isoformat()
+        (tmp_path / "tips.json").write_text(
+            json.dumps(
+                {
+                    "tips": [
+                        {
+                            "id": "today01",
+                            "topic": "python",
+                            "content": "cached daily tip",
+                            "examples": [],
+                            "labels": [],
+                            "favorited": False,
+                            "created_at": today_str,
+                        }
+                    ]
+                }
+            )
+        )
+        storage_module.clear_cache()
+        (tmp_path / "config.json").write_text(
+            json.dumps({"today_date": today_str, "today_tip_id": "today01"})
+        )
+
+        result = runner.invoke(cli, ["today"])
+        assert result.exit_code == 0
+        assert "cached daily tip" in result.output
+
+
 class TestTopicsCommands:
     def test_topics_list_empty(self, runner):
         result = runner.invoke(cli, ["topics", "list"])

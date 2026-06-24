@@ -6,13 +6,14 @@ from . import (
     parse_response,
     extract_json,
     register_provider,
+    api_error_message,
 )
 
 
 class GeminiClient(Client):
     def __init__(self, api_key: str, model: str):
         self.api_key = api_key
-        self.model = model or "gemini-1.5-pro"
+        self.model = model or "gemini-2.0-flash"
         self.session = requests.Session()
 
     def generate_tip(self, topic: str) -> TipResponse:
@@ -30,7 +31,7 @@ class GeminiClient(Client):
 
         response = self.session.post(url, headers=headers, json=body, timeout=(5, 30))
         if response.status_code != 200:
-            raise Exception(f"Gemini API error: status {response.status_code}")
+            raise Exception(api_error_message("Gemini", response.status_code))
 
         data = response.json()
         candidates = data.get("candidates", [])

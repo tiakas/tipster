@@ -1,5 +1,6 @@
 import click
 import random
+import requests
 
 from tipster import config, storage, ai
 from tipster.cmd_output import (
@@ -46,7 +47,16 @@ def tips_new(topic):
     console.print(f"[bold]Generating new tip about {topic}...[/bold]")
 
     try:
-        response = client.generate_tip(topic)
+        response = ai.generate_with_retry(client, topic)
+    except ValueError as e:
+        print_error(f"invalid topic: {e}")
+        return
+    except requests.exceptions.Timeout:
+        print_error("request timed out")
+        return
+    except requests.exceptions.ConnectionError:
+        print_error("network error - check your connection")
+        return
     except Exception as e:
         print_error(f"failed to generate tip: {e}")
         return
@@ -66,11 +76,16 @@ def tips_new(topic):
 @click.argument("tip_id")
 def tips_show(tip_id):
     """Show a tip by ID"""
-    tip = storage.get_tip_by_id(tip_id)
-    if not tip:
+    matches = storage.find_tips_by_prefix(tip_id)
+    if not matches:
         print_error(f"tip not found: {tip_id}")
         return
-    print_tip(tip)
+    if len(matches) > 1:
+        print_error(
+            f"ambiguous ID prefix '{tip_id}' matches {len(matches)} tips. Use a longer prefix"
+        )
+        return
+    print_tip(matches[0])
 
 
 @tips.command(name="delete")
@@ -109,7 +124,9 @@ def tips_delete(tip_id, yes):
 
 @tips.command(name="list")
 @click.argument("topic", required=False)
-def tips_list(topic):
+@click.option("--label", "-l", help="Filter by label (case-insensitive)")
+@click.option("--limit", "-n", type=int, help="Show at most N tips")
+def tips_list(topic, label, limit):
     """Show all tips or tips for a specific topic"""
     if topic:
         tips = storage.get_tips_by_topic(topic)
@@ -117,4 +134,32 @@ def tips_list(topic):
         data = storage.load()
         tips = data.tips
 
-    print_tips_list(tips, f"Tips ({len(tips)})")
+    if label:
+        label_lower = label.lower()
+        tips = [t for t in tips if any(label_lower in lb.lower() for lb in t.labels)]
+
+    total = len(tips)
+    if limit is not None and limit >= 0:
+        tips = tips[:limit]
+
+    if limit is not None and len(tips) < total:
+        title = f"Tips ({len(tips)} of {total})"
+    else:
+        title = f"Tips ({total})"
+    print_tips_list(tips, title)
+
+
+@tips.command(name="random")
+@click.argument("topic", required=False)
+def tips_random(topic):
+    """Show a random saved tip"""
+    if topic:
+        tips = storage.get_tips_by_topic(topic)
+    else:
+        tips = storage.load().tips
+
+    if not tips:
+        print_error("no tips found")
+        return
+
+    print_tip(random.choice(tips))

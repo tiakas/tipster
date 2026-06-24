@@ -6,12 +6,13 @@ from . import (
     parse_response,
     extract_json,
     register_provider,
+    api_error_message,
 )
 
 
 class OllamaClient(Client):
     def __init__(self, api_key: str, model: str):
-        self.model = model or "llama2"
+        self.model = model or "llama3.2"
         self.base_url = "http://localhost:11434"
         self.session = requests.Session()
 
@@ -27,7 +28,7 @@ class OllamaClient(Client):
 
         response = self.session.post(url, json=body, timeout=(5, 30))
         if response.status_code != 200:
-            raise Exception(f"Ollama API error: status {response.status_code}")
+            raise Exception(api_error_message("Ollama", response.status_code))
 
         data = response.json()
         text = data.get("response", "")

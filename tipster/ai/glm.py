@@ -6,6 +6,7 @@ from . import (
     parse_response,
     extract_json,
     register_provider,
+    api_error_message,
 )
 
 
@@ -30,7 +31,7 @@ class GLMClient(Client):
 
         response = self.session.post(url, json=body, headers=headers, timeout=(5, 30))
         if response.status_code != 200:
-            raise Exception(f"GLM API error: status {response.status_code}")
+            raise Exception(api_error_message("GLM", response.status_code))
 
         data = response.json()
         choices = data.get("choices", [])

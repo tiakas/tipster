@@ -1,5 +1,6 @@
 import json
 import random
+import re
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -53,7 +54,38 @@ ANGLES = [
 ]
 
 
+_TOPIC_RE = re.compile(r"^[\w\s\-.,!?+#/]+$")
+
+
+def validate_topic(topic: str) -> str:
+    topic = topic.strip()
+    if not topic:
+        raise ValueError("topic cannot be empty")
+    if len(topic) > 100:
+        raise ValueError("topic too long (max 100 characters)")
+    if not _TOPIC_RE.match(topic):
+        raise ValueError("topic contains invalid characters")
+    return topic
+
+
+_STATUS_MESSAGES = {
+    400: "invalid request",
+    401: "invalid API key",
+    403: "access forbidden",
+    404: "not found",
+    429: "rate limit exceeded",
+    500: "server error",
+    503: "service unavailable",
+}
+
+
+def api_error_message(provider: str, status: int) -> str:
+    detail = _STATUS_MESSAGES.get(status, f"status {status}")
+    return f"{provider} API error: {detail}"
+
+
 def build_prompt(topic: str) -> str:
+    topic = validate_topic(topic)
     angle = random.choice(ANGLES)
     return f"""Generate a practical tip about {topic} focusing on: {angle}.
 
@@ -73,10 +105,24 @@ Respond in JSON format only:
 def parse_response(text: str) -> TipResponse:
     json_str = extract_json(text)
     data = json.loads(json_str)
+    if not isinstance(data, dict) or not data.get("content"):
+        raise ValueError("AI response missing required 'content' field")
     return TipResponse(
-        content=data.get("content", ""),
+        content=data["content"],
         examples=data.get("examples", []),
         labels=data.get("labels", []),
+    )
+
+
+def generate_with_retry(client: "Client", topic: str, attempts: int = 2) -> TipResponse:
+    last_err: Optional[json.JSONDecodeError] = None
+    for _ in range(max(1, attempts)):
+        try:
+            return client.generate_tip(topic)
+        except json.JSONDecodeError as e:
+            last_err = e
+    raise Exception(
+        f"model returned invalid JSON after {attempts} attempts: {last_err}"
     )
 
 

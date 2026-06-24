@@ -1,6 +1,7 @@
 import json
 import os
 import stat
+import tempfile
 from pathlib import Path
 
 
@@ -59,8 +60,18 @@ def save(cfg: Config) -> None:
     config_dir.mkdir(parents=True, exist_ok=True)
 
     config_path = get_config_path()
-    with open(config_path, "w") as f:
-        json.dump(cfg.to_dict(), f, indent=2)
+    fd, tmp_path = tempfile.mkstemp(dir=config_dir, prefix=".config-", suffix=".tmp")
+    try:
+        os.chmod(tmp_path, stat.S_IRUSR | stat.S_IWUSR)
+        with os.fdopen(fd, "w") as f:
+            json.dump(cfg.to_dict(), f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, config_path)
+    except BaseException:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise
     config_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
 
 
@@ -80,13 +91,3 @@ def get_api_key(provider: str) -> str:
     if env_key:
         return os.getenv(env_key, "")
     return ""
-
-
-def print_config(cfg: Config) -> None:
-    print(f"Provider: {cfg.provider}")
-    print(f"Model: {cfg.model}")
-    if cfg.api_key:
-        print("API Key: set")
-    else:
-        print("API Key: not set (using env var)")
-    print(f"Topics: {cfg.topics}")

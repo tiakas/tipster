@@ -35,6 +35,7 @@ from tipster.cmd import (  # noqa: E402
     export,
     import_cmd,
     search,
+    today,
     version,
 )
 
@@ -46,4 +47,5 @@ cli.add_command(config_cmd.config_cmd)
 cli.add_command(export.export_cmd)
 cli.add_command(import_cmd.import_cmd)
 cli.add_command(search.search)
+cli.add_command(today.today)
 cli.add_command(version.version)
